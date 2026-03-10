@@ -2,9 +2,15 @@ const CACHE_NAME = 'baby-tracker-v1';
 const ASSETS = [
     './',
     './index.html',
-    './app.jsx',
     './manifest.json',
-    './icon.svg'
+    './icon.svg',
+    'https://cdn.tailwindcss.com',
+    'https://unpkg.com/react@18/umd/react.production.min.js',
+    'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+    'https://unpkg.com/@babel/standalone/babel.min.js',
+    'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js'
 ];
 
 self.addEventListener('install', event => {
@@ -32,9 +38,9 @@ self.addEventListener('fetch', event => {
                 }
                 // Try network
                 return fetch(event.request).then(
-                    function(response) {
+                    function (response) {
                         // Check if we received a valid response
-                        if(!response || response.status !== 200 || response.type !== 'basic') {
+                        if (!response || response.status !== 200 || response.type !== 'basic') {
                             return response;
                         }
                         return response;
@@ -44,7 +50,7 @@ self.addEventListener('fetch', event => {
     );
 });
 
-self.addEventListener('push', function(event) {
+self.addEventListener('push', function (event) {
     if (event.data) {
         const data = event.data.json();
         const options = {
