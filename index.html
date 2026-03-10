@@ -180,7 +180,7 @@
 
         // ----- COMPONENTS ----- //
 
-        function Onboarding({ onSave }) {
+        function Onboarding({ onSave, familyId }) {
             const [name, setName] = useState('');
             const [dob, setDob] = useState('');
             const [weight, setWeight] = useState('');
@@ -199,7 +199,18 @@
                             </div>
                         </div>
                         <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 text-center mb-2">Welcome</h2>
-                        <p className="text-gray-500 text-center mb-8">Let's set up your baby's profile</p>
+                        <p className="text-gray-500 text-center mb-6">Let's set up your baby's profile</p>
+
+                        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 mb-6 text-center shadow-inner">
+                            <p className="text-xs text-blue-600 font-medium mb-1 uppercase tracking-wider">Your Family ID</p>
+                            <div className="flex items-center justify-center space-x-2">
+                                <span className="text-xl font-mono font-bold text-gray-800 tracking-widest">{familyId}</span>
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(familyId); alert('Copied ID: ' + familyId); }} className="p-1.5 bg-white text-blue-600 rounded-lg shadow-sm border border-blue-100 hover:bg-blue-50 transition active:scale-95" title="Copy ID">
+                                    📋
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-2 leading-tight">Share this code with your partner so you can both sync to the same tracker.</p>
+                        </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
@@ -224,7 +235,7 @@
             );
         }
 
-        function Dashboard({ profile, feeds, diapers, medLogs, medications }) {
+        function Dashboard({ profile, feeds, diapers, medLogs, medications, familyId }) {
             // Calc age
             const ageDays = profile?.dob ? dateFns.differenceInDays(new Date(), new Date(profile.dob)) : 0;
             const ageWeeks = Math.floor(ageDays / 7);
@@ -291,15 +302,18 @@
             return (
                 <div className="p-6 pb-24 h-full overflow-y-auto w-full bg-gray-50 fade-in">
                     {/* Header section */}
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h1 className="text-3xl font-extrabold text-gray-900">{profile?.name}</h1>
-                            <p className="text-sm text-gray-500 font-medium">
+                            <h1 className="text-3xl font-extrabold text-gray-900 mb-1">{profile?.name}</h1>
+                            <p className="text-sm text-gray-500 font-medium mb-3">
                                 {ageMonths > 0 ? `${ageMonths} months` : ageWeeks > 0 ? `${ageWeeks} wks, ${ageDays % 7} days` : `${ageDays} days old`}
                                 &nbsp;•&nbsp;{profile?.currentWeight} kg
                             </p>
+                            <button onClick={() => { navigator.clipboard.writeText(familyId); alert('Copied ID: ' + familyId); }} className="inline-flex items-center bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold tracking-widest border border-blue-200 shadow-sm hover:bg-blue-100 transition active:scale-95">
+                                FAMILY ID: <span className="font-mono ml-1">{familyId}</span> <span className="ml-2 opacity-60">📋</span>
+                            </button>
                         </div>
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white text-2xl shadow-lg border-2 border-white">
+                        <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white text-2xl shadow-lg border-2 border-white flex-shrink-0">
                             👶
                         </div>
                     </div>
@@ -1057,14 +1071,14 @@
 
             if (!profile) {
                 const saveProfile = (prof) => db.collection('families').doc(familyId).set({ profile: prof }, { merge: true });
-                return <Onboarding onSave={saveProfile} />;
+                return <Onboarding onSave={saveProfile} familyId={familyId} />;
             }
 
             return (
                 <div className="flex flex-col h-full relative">
                     {/* Dynamic View rendering */}
                     <div className="flex-1 overflow-hidden relative">
-                        {activeTab === 'dashboard' && <Dashboard profile={profile} feeds={feeds} diapers={diapers} medications={medications} medLogs={medLogs} />}
+                        {activeTab === 'dashboard' && <Dashboard profile={profile} feeds={feeds} diapers={diapers} medications={medications} medLogs={medLogs} familyId={familyId} />}
                         {activeTab === 'feed' && <FeedTracker familyId={familyId} feeds={feeds} />}
                         {activeTab === 'diaper' && <DiaperTracker familyId={familyId} diapers={diapers} />}
                         {activeTab === 'meds' && <MaternalMeds familyId={familyId} medications={medications} medLogs={medLogs} />}
