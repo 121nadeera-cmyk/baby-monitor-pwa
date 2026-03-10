@@ -1,0 +1,16 @@
+{
+  "name": "Baby & Parent Tracker",
+  "short_name": "Baby Tracker",
+  "description": "Progressive Web App to track newborn feeding, diaper changes, and maternal medication schedules.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0ea5e9",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
