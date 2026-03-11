@@ -715,7 +715,7 @@
                     name,
                     dosage,
                     isSOS,
-                    frequency: isSOS ? null : parseInt(frequency)
+                    frequency: parseInt(frequency)
                 });
                 setShowAdd(false);
                 setName(''); setDosage(''); setFrequency(''); setIsSOS(false);
@@ -726,18 +726,18 @@
             const takeDose = (med) => {
                 const chosenTimeStr = customMedTimes[med.id];
                 const now = chosenTimeStr ? new Date(chosenTimeStr) : new Date();
-                const nextTime = med.isSOS ? null : dateFns.addHours(now, med.frequency);
+                const nextTime = dateFns.addHours(now, med.frequency);
 
                 db.collection('families').doc(familyId).collection('medLogs').add({
                     medId: med.id,
                     timestamp: now.toISOString(),
-                    nextDoseTime: nextTime ? nextTime.toISOString() : null
+                    nextDoseTime: nextTime.toISOString()
                 });
 
                 setCustomMedTimes({ ...customMedTimes, [med.id]: '' });
 
                 // Setup local notification timeout if app is open (Fallback)
-                if (nextTime) {
+                if (!med.isSOS && nextTime) {
                     const msTillNext = nextTime.getTime() - Date.now();
                     if (msTillNext > 0) {
                         setTimeout(() => {
@@ -756,10 +756,10 @@
 
             const saveEditLog = (med) => {
                 const dateRaw = new Date(editTime);
-                const nextRaw = med.isSOS ? null : dateFns.addHours(dateRaw, med.frequency);
+                const nextRaw = dateFns.addHours(dateRaw, med.frequency);
                 db.collection('families').doc(familyId).collection('medLogs').doc(editingLogId).update({
                     timestamp: dateRaw.toISOString(),
-                    nextDoseTime: nextRaw ? nextRaw.toISOString() : null
+                    nextDoseTime: nextRaw.toISOString()
                 });
                 setEditingLogId(null);
             };
@@ -777,7 +777,7 @@
                     name: editMedName,
                     dosage: editMedDosage,
                     isSOS: editMedIsSOS,
-                    frequency: editMedIsSOS ? null : parseInt(editMedFrequency)
+                    frequency: parseInt(editMedFrequency)
                 });
                 setEditingMedId(null);
             };
@@ -801,13 +801,11 @@
                                     <input type="checkbox" checked={isSOS} onChange={e => setIsSOS(e.target.checked)} className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
                                     <span>SOS / Take as needed</span>
                                 </label>
-                                {!isSOS && (
-                                    <div className="flex items-center space-x-2">
-                                        <span className="text-sm text-gray-600">Every</span>
-                                        <input required={!isSOS} type="number" placeholder="4" className="w-20 p-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 bg-gray-50" value={frequency} onChange={e => setFrequency(e.target.value)} />
-                                        <span className="text-sm text-gray-600">hours</span>
-                                    </div>
-                                )}
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-600">{isSOS ? 'Minimum gap of' : 'Every'}</span>
+                                    <input required type="number" placeholder="4" className="w-20 p-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 bg-gray-50" value={frequency} onChange={e => setFrequency(e.target.value)} />
+                                    <span className="text-sm text-gray-600">hours</span>
+                                </div>
                                 <button type="submit" className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg shadow mt-2">Save</button>
                             </form>
                         </div>
@@ -817,8 +815,9 @@
                         {medications.map(med => {
                             const logs = medLogs.filter(l => l.medId === med.id).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                             const lastLog = logs[0];
-                            const nextTime = (!med.isSOS && lastLog && lastLog.nextDoseTime) ? new Date(lastLog.nextDoseTime) : null;
-                            const dueNow = nextTime && dateFns.isPast(nextTime);
+                            const nextTime = (lastLog && lastLog.nextDoseTime) ? new Date(lastLog.nextDoseTime) : null;
+                            const canTakeNow = !nextTime || dateFns.isPast(nextTime);
+                            const dueNow = !med.isSOS && canTakeNow && nextTime; // Only flag red for strictly timed meds
 
                             return (
                                 <div key={med.id} className={`bg-white p-5 rounded-2xl shadow-sm border transition-all ${dueNow ? 'border-red-300 ring-4 ring-red-50' : 'border-gray-50'}`}>
@@ -830,13 +829,11 @@
                                                 <input type="checkbox" checked={editMedIsSOS} onChange={e => setEditMedIsSOS(e.target.checked)} className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
                                                 <span>SOS / Take as needed</span>
                                             </label>
-                                            {!editMedIsSOS && (
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="text-sm">Every</span>
-                                                    <input type="number" value={editMedFrequency} onChange={e => setEditMedFrequency(e.target.value)} className="w-16 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none" />
-                                                    <span className="text-sm">hrs</span>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center space-x-2">
+                                                <span className="text-sm">{editMedIsSOS ? 'Minimum gap of' : 'Every'}</span>
+                                                <input type="number" required value={editMedFrequency} onChange={e => setEditMedFrequency(e.target.value)} className="w-16 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none" />
+                                                <span className="text-sm">hrs</span>
+                                            </div>
                                             <div className="flex space-x-2 pt-2">
                                                 <button onClick={saveEditMed} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold">Save</button>
                                                 <button onClick={() => setEditingMedId(null)} className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold">Cancel</button>
@@ -849,10 +846,10 @@
                                                     <h3 className="font-bold text-lg text-gray-800">{med.name}</h3>
                                                     <button onClick={() => startEditMed(med)} className="text-indigo-400 hover:text-indigo-600 font-bold px-2 py-0.5 rounded transition-colors text-sm" title="Edit Prescription">✎</button>
                                                 </div>
-                                                <p className="text-sm text-gray-500">{med.dosage} • {med.isSOS ? 'SOS (As Needed)' : `Every ${med.frequency}h`}</p>
+                                                <p className="text-sm text-gray-500">{med.dosage} • {med.isSOS ? `SOS (Min ${med.frequency}h gap)` : `Every ${med.frequency}h`}</p>
                                             </div>
-                                            <div className={`px-3 py-1 rounded-full text-xs font-bold ${med.isSOS ? 'bg-indigo-50 text-indigo-600' : dueNow ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
-                                                {med.isSOS ? 'As Needed' : nextTime ? (dueNow ? 'Due Now' : `Next: ${dateFns.format(nextTime, 'h:mm a')}`) : 'Not taken yet'}
+                                            <div className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap text-center ${!canTakeNow ? 'bg-orange-100 text-orange-600' : med.isSOS ? 'bg-indigo-50 text-indigo-600' : nextTime ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                {!canTakeNow ? `Wait until ${dateFns.format(nextTime, 'h:mm a')}` : med.isSOS ? 'Available Now' : nextTime ? 'Due Now' : 'Not taken yet'}
                                             </div>
                                         </div>
                                     )}
